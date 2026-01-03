@@ -7,7 +7,41 @@ import json
 # 1. Configuração da Página
 st.set_page_config(page_title="Jotinha", layout="wide", page_icon="🤠")
 
-# --- CONEXÃO INTELIGENTE (LOCAL + NUVEM) ---
+# --- SISTEMA DE LOGIN (NOVIDADE v1.05) ---
+# Verifica se a pessoa já logou antes
+if "logado" not in st.session_state:
+    st.session_state["logado"] = False
+
+# Se não estiver logado, mostra a tela de bloqueio
+if not st.session_state["logado"]:
+    st.title("🔒 Acesso Restrito")
+    st.markdown("Este sistema é privado. Por favor, identifique-se.")
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        senha_digitada = st.text_input("Digite a senha:", type="password")
+    
+    if st.button("Entrar"):
+        # Tenta pegar a senha do Cofre (Nuvem) ou usa uma padrão para teste local se não tiver cofre configurado
+        senha_correta = st.secrets.get("SENHA_ACESSO", "Jotinha@2000")
+        
+        if senha_digitada == senha_correta:
+            st.session_state["logado"] = True
+            st.success("Acesso liberado!")
+            st.rerun()
+        else:
+            st.error("Senha incorreta. Tente novamente.")
+    
+    # O comando stop faz o Python PARAR de ler o código aqui. 
+    # Nada abaixo disso é carregado se não tiver senha.
+    st.stop()
+
+# =========================================================
+# DAQUI PARA BAIXO É O JOTINHA QUE VOCÊ JÁ CONHECE
+# (Só carrega se passar pela senha acima)
+# =========================================================
+
+# --- CONEXÃO INTELIGENTE ---
 @st.cache_resource
 def conectar_google_sheets():
     scopes = [
@@ -15,18 +49,14 @@ def conectar_google_sheets():
         "https://www.googleapis.com/auth/drive"
     ]
     
-    # ESTRATÉGIA 1: Tenta pegar do Cofre Digital (Nuvem)
     if "CREDENTIALS_JSON_CONTENT" in st.secrets:
-        # Lê o texto JSON que guardamos no cofre e converte para dicionário
         info_dict = json.loads(st.secrets["CREDENTIALS_JSON_CONTENT"])
         credentials = Credentials.from_service_account_info(info_dict, scopes=scopes)
-    
-    # ESTRATÉGIA 2: Tenta pegar do arquivo físico (Local no seu PC)
     else:
         try:
             credentials = Credentials.from_service_account_file("credentials.json", scopes=scopes)
         except FileNotFoundError:
-            st.error("❌ Erro: Não achei 'credentials.json' (Local) nem o Segredo na Nuvem.")
+            st.error("❌ Erro de conexão.")
             st.stop()
             
     client = gspread.authorize(credentials)
@@ -61,6 +91,12 @@ else:
 with st.sidebar:
     st.title("⚙️ Configurações")
     st.markdown("Gerencie a estrutura do seu Jotinha aqui.")
+    
+    # Botão de Sair (Logout)
+    if st.button("🔒 Sair do Sistema"):
+        st.session_state["logado"] = False
+        st.rerun()
+        
     st.divider()
     
     st.subheader("Nova Coluna")
