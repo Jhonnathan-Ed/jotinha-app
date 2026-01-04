@@ -149,7 +149,7 @@ with st.sidebar:
                     st.rerun()
 
 # --- ÁREA PRINCIPAL ---
-st.title("🤠 Jotinha")
+st.title("JOTINHA")
 
 # --- POP-UPS (DIALOGS) ---
 @st.dialog("Novo Card")
